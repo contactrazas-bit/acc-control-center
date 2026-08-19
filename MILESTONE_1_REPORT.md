@@ -4,7 +4,7 @@
 
 **MILESTONE 1 - NOT ACCEPTED.**
 
-The repository initially contained only `MILESTONE_1_REPORT (1).md` on `main`; no runnable implementation, `package.json`, source tree, tests, or Supabase migration were present. I created and validated a Milestone 1-only foundation. Automated local checks pass, but the GitHub branch push is blocked by missing local Git credentials, and live Supabase authentication/MFA/RLS cannot be accepted without project credentials and test accounts.
+The repository initially contained only `MILESTONE_1_REPORT (1).md` on `main`; no runnable implementation, `package.json`, source tree, tests, or Supabase migration were present. I created and validated a Milestone 1-only foundation. Automated local checks pass, but the GitHub branch push is blocked because the GitHub CLI token visible in this Codex environment is invalid and local Git has no usable credential, and live Supabase authentication/MFA/RLS cannot be accepted without project credentials and test accounts.
 
 Milestone 2 was not started.
 
@@ -15,12 +15,14 @@ Milestone 2 was not started.
 | Repository inspected | `contactrazas-bit/acc-control-center` |
 | Remote `main` contents | Only `MILESTONE_1_REPORT (1).md` was present before this work |
 | Local branch | `milestone-1-foundation` |
-| Local commit | `31f72f0a54def734f79dc27fa66d5f4260aeb52c` |
+| Local commit | `e96d7c77d334619c7a4e7429bf13614a8b3cc042` |
 | Commit message | `Add Milestone 1 secure foundation` |
 | Remote branch | Not pushed |
+| Remote commit SHA | Not available; exact local commit is not present on GitHub |
 | Pull request | Not created |
-| Push blocker | Local Git reached GitHub but received HTTP 401 and no GitHub token/credential is available in this environment |
-| 2026-08-20 retry | `gh auth status` could not run because `gh` is not installed; shell environment does not expose `GH_TOKEN` |
+| PR number/URL | Not available |
+| Push blocker | `gh auth status` reports the default `contactrazas-bit` token is invalid; local Git also cannot access GitHub credentials (`SEC_E_NO_CREDENTIALS`); removing the stale auth entry is blocked because this Codex sandbox has read but not write access to the GitHub CLI config file |
+| 2026-08-20 retry | `gh` is installed at `C:\Program Files\GitHub CLI\gh.exe` but is not on this shell's `PATH`; direct `gh.exe` execution works, authentication does not |
 | Secret scan | No populated Supabase keys, tokens, private keys, `.env.local`, or credential files found in publishable source |
 | `.gitignore` | Added; excludes `node_modules/`, `.next/`, `.npm-cache/`, local `.env*` files except `.env.example`, logs, and key/certificate files |
 | `package-lock.json` | Included |
@@ -39,10 +41,20 @@ Milestone 2 was not started.
 | `npm run build` | Passed: Next.js 16.3.1 production build completed successfully. |
 | `npm audit --cache .\.npm-cache --audit-level=moderate` | Passed: found 0 vulnerabilities. |
 | `npx next start -p 3099` + `HEAD http://localhost:3099/login` | Passed for security headers on `/login`: CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, and HSTS were present. |
-| `git push -u origin milestone-1-foundation` | Blocked: GitHub returned HTTP 401 because the local Git client has no credentials/token. |
-| `gh auth status` | Blocked on 2026-08-20: GitHub CLI is not installed in this environment. |
-| `gh auth setup-git` | Not run because `gh auth status` could not run. |
-| `GH_TOKEN` visibility check | Blocked on 2026-08-20: no `GH_TOKEN` value is visible to shell processes; only `GH_PAGER` is present. |
+| `git push -u origin milestone-1-foundation` | Blocked on 2026-08-20: local Git could not acquire credentials for GitHub (`SEC_E_NO_CREDENTIALS`). |
+| `gh --version` | Passed via direct executable path: GitHub CLI 2.97.0 is installed, but `gh` is not currently on this shell's `PATH`. |
+| `gh auth status` | Blocked on 2026-08-20: direct `gh.exe` run reports the default `contactrazas-bit` token is invalid. |
+| `gh auth logout --hostname github.com --user contactrazas-bit` | Blocked on 2026-08-20: GitHub CLI could not open `C:\Users\A\AppData\Roaming\GitHub CLI\hosts.yml` for update because access is denied. |
+| GitHub CLI stale-entry check | Confirmed the `contactrazas-bit` auth entry is present without printing file contents or token values. |
+| `gh auth login --hostname github.com --git-protocol https --web` | Not run because the requested first step, removing the stale `contactrazas-bit` auth entry, is blocked by missing write access to the GitHub CLI config file. |
+| `gh repo view contactrazas-bit/acc-control-center` | Blocked on 2026-08-20: direct `gh.exe` run returned HTTP 401 because authentication is invalid. |
+| `git status -sb` | Passed in the correct checkout: `milestone-1-foundation...origin/main [ahead 1]`, clean worktree before this report update. |
+| `git rev-parse HEAD` | Passed: `e96d7c77d334619c7a4e7429bf13614a8b3cc042`. |
+| `git ls-remote --heads origin milestone-1-foundation main` | Blocked on 2026-08-20: local Git could not acquire credentials for GitHub (`SEC_E_NO_CREDENTIALS`). |
+| GitHub connector repository check | Passed: connector can see `contactrazas-bit/acc-control-center` with push/admin permissions. |
+| GitHub connector commit check | Confirmed `e96d7c77d334619c7a4e7429bf13614a8b3cc042` is not present on GitHub, so a PR cannot point to that exact local commit until Git credentials are fixed or the commit is otherwise uploaded. |
+| `gh auth setup-git` | Not run because `gh auth status` reports an invalid token. |
+| `GH_TOKEN` visibility check | Previously blocked on 2026-08-20: no `GH_TOKEN` value is visible to shell processes; only `GH_PAGER` is present. |
 | Supabase environment check | Blocked: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `APP_ENCRYPTION_KEY` are not set in the environment. |
 
 ## Fixes Made
@@ -96,7 +108,7 @@ No secret values should be printed in logs or committed to source.
 
 Live acceptance requires:
 
-1. GitHub credentials/token or connector access capable of publishing the local commit to `contactrazas-bit/acc-control-center`.
+1. Write access for this Codex environment to update `C:\Users\A\AppData\Roaming\GitHub CLI\hosts.yml`, or manual removal of the stale `contactrazas-bit` GitHub CLI auth entry, followed by fresh `gh auth login`.
 2. `NEXT_PUBLIC_SUPABASE_URL`
 3. `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 4. A Supabase project with `supabase/migrations/0001_secure_foundation.sql` applied
